@@ -42,6 +42,7 @@ def prepare_next_song():
             currentVideo = pytube.YouTube(url)
             
             audio_stream = currentVideo.streams.get_audio_only()
+            print(audio_stream)
             downloadFile = audio_stream.download(output_path=os.path.join(os.getcwd(), "music"))
             
             base, ext = os.path.splitext(downloadFile)
@@ -110,7 +111,25 @@ def clear_music_directory():
     except:
         print("could not clea all")
 
-    
+def set_audio_volume(audio):
+    try:
+        print(audio)
+        pygame.mixer.music.set_volume(int(audio) / 100)
+    except Exception as e:
+        print(e)
+    return
+
+def hide_name():
+    songName.place_forget()
+    hideName.config(text="Show name", command=show_name)
+    return
+
+def show_name():
+    songName.place(relx=0.5,
+               rely=0.5,
+               anchor="center")
+    hideName.config(text="Hide name", command=hide_name)
+    return
 root = tk.Tk()
 root.geometry("500x500")
 root.title("Player")
@@ -134,6 +153,17 @@ changePlay.place(relx=0.5,
     
 skipButton = tk.Button(root, text="Skip", font=('Arial', 20), command=skipFuc, background="Green")
 skipButton.place(relx=0.75,
+               rely=0.75,
+               anchor="center")
+
+audioPanel = tk.Scale(root, from_=0, to=100, orient="horizontal", command=set_audio_volume)
+audioPanel.set(100)
+audioPanel.place(relx=0.5,
+               rely=0.9,
+               anchor="center")
+
+hideName = tk.Button(root, text="Show name", command=show_name)
+hideName.place(relx=0.25,
                rely=0.75,
                anchor="center")
 
