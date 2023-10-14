@@ -135,6 +135,7 @@ def show_name():
 root = tk.Tk()
 root.geometry("500x500")
 root.title("Player")
+root.config(background="#6082B8")
 
 pygame.mixer.init()
 
@@ -153,7 +154,7 @@ changePlay.place(relx=0.5,
                rely=0.15,
                anchor="center")
     
-skipButton = tk.Button(root, text="Skip", font=('Arial', 20), command=skipFuc, background="Green")
+skipButton = tk.Button(root, text="Skip", font=('Arial', 20), command=skipFuc, background="#21D344")
 skipButton.place(relx=0.75,
                rely=0.75,
                anchor="center")
