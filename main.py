@@ -1,16 +1,13 @@
 import pytube
-#import webbrowser
 import random
 import time
 import tkinter as tk
 import os
 import pygame
 import moviepy.editor
-import glob
 import threading
 
 #Accesability
-#Skipknapp
 
 def changePlaylist():
     global p
@@ -66,6 +63,7 @@ def prepare_next_song():
 
 def play_next_song():
     global qued_songs, qued_song_streams, playingMusic, last_song
+    song_thread = threading.Thread(target=songLoop)
     if len(qued_songs) > 0:
         pygame.mixer.music.unload()
         try:
@@ -79,11 +77,13 @@ def play_next_song():
             except Exception as e:
                 print(e)
         pygame.mixer.music.play(loops=0)
-        songName.config(text=qued_song_streams[0].title)
-        playingMusic = root.after(int(qued_song_streams[0].length * 1000), songLoop)
+        songName.config(text=qued_song_streams[i].title)
+        playingMusic = root.after(int(qued_song_streams[i].length * 1000), song_thread.start)
         last_song = qued_songs[i]
         qued_songs.pop(i)
         qued_song_streams.pop(i)
+        for k in range(i):
+            qued_songs.pop(0)
     else:
         print("Next song is not ready yet, waiting...")
         return
