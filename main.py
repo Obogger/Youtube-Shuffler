@@ -6,6 +6,7 @@ import os
 import pygame
 import moviepy.editor
 import threading
+import pychromecast
 
 #Accesability
 
@@ -88,6 +89,7 @@ def play_next_song():
     else:
         print("Next song is not ready yet, waiting...")
         return
+
 def skipFuc():
     global playingMusic, song_thread
     try:
@@ -101,7 +103,6 @@ def skipFuc():
         song_thread.start()    
     else:
         print("Currently skipping and downloading")
-
 
 def clear_music_directory():
     try:
@@ -130,6 +131,7 @@ def show_name():
                anchor="center")
     hideName.config(text="Hide name", command=hide_name)
     return
+
 root = tk.Tk()
 root.geometry("500x500")
 root.title("Player")
@@ -156,7 +158,7 @@ skipButton.place(relx=0.75,
                rely=0.75,
                anchor="center")
 
-audioPanel = tk.Scale(root, from_=0, to=100, orient="horizontal", command=set_audio_volume)
+audioPanel = tk.Scale(root, from_=0, to=100, orient="horizontal", command=set_audio_volume, length=250, tickinterval=10)
 audioPanel.set(100)
 audioPanel.place(relx=0.5,
                rely=0.9,
