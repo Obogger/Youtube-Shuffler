@@ -1,14 +1,9 @@
-import pytube
-import random
-import time
-import tkinter as tk
-import os
-import pygame
-import moviepy.editor
-import threading
-import pychromecast
+import pytube, random, time, os, pygame, moviepy.editor, threading, urllib
+from PIL import Image
 
-#Accesability
+import customtkinter as CTk
+
+
 
 def changePlaylist():
     global p
@@ -29,24 +24,29 @@ def songLoop():
         print("Dubble buffering")
     while prepare_next_song_thread_first.is_alive() or prepare_next_song_thread_second.is_alive():
         time.sleep(1)
-    skipButton.config(background="Green")
+    skipButton.configure(text_color="#0191DF")
     return
     
     
     return
         
 def prepare_next_song():   
-    global qued_songs 
+    global qued_songs , qued_song_picture
     for _ in range(5):
         try:
             url = random.choice(p)
             currentVideo = pytube.YouTube(url)
-            
+            picture_url = currentVideo.thumbnail_url
             audio_stream = currentVideo.streams.get_audio_only()
             print(audio_stream)
+            print(picture_url)
             downloadFile = audio_stream.download(output_path=os.path.join(os.getcwd(), "music"))
-            
             base, ext = os.path.splitext(downloadFile)
+            base_name = os.path.basename(downloadFile)
+            base_name = os.path.splitext(base_name)[0]
+            urllib.request.urlretrieve(picture_url, "picture/" + base_name + ".jpg")
+            jpg_file = os.path.join(os.getcwd(), "picture", base_name + ".jpg")
+            print(jpg_file)
             mp3_file = base + ".mp3"
 
             video_file = moviepy.editor.AudioFileClip(downloadFile)
@@ -55,7 +55,8 @@ def prepare_next_song():
             os.remove(downloadFile)
 
             qued_songs.append(mp3_file)
-            qued_song_streams.append(currentVideo) 
+            qued_song_streams.append(currentVideo)
+            qued_song_picture.append(jpg_file)
             return
         except Exception as e:
             print(f"expetion occurd preparing: {e}")
@@ -64,12 +65,14 @@ def prepare_next_song():
     return
 
 def play_next_song():
-    global qued_songs, qued_song_streams, playingMusic, last_song
+    global qued_songs, qued_song_streams, playingMusic, last_song, qued_song_picture, last_image
     song_thread = threading.Thread(target=songLoop)
     if len(qued_songs) > 0:
         pygame.mixer.music.unload()
+        imageHolder.configure(image=place_music_image)        
         try:
             os.remove(last_song)
+            os.remove(last_image)
         except:
             print("No lst song")
         for i in range(len(qued_songs)):
@@ -79,13 +82,21 @@ def play_next_song():
             except Exception as e:
                 print(e)
         pygame.mixer.music.play(loops=0)
-        songName.config(text=qued_song_streams[i].title)
+        songName.configure(text=qued_song_streams[i].title)
+        artist_name.configure(text=qued_song_streams[i].author)
+        music_picture = CTk.CTkImage(dark_image=Image.open(qued_song_picture[i]),
+                                     light_image=Image.open(qued_song_picture[i]),
+                                     size=(100,100))
+        imageHolder.configure(image=music_picture)
         playingMusic = root.after(int(qued_song_streams[i].length * 1000), song_thread.start)
         last_song = qued_songs[i]
+        last_image = qued_song_picture[i]
         qued_songs.pop(i)
         qued_song_streams.pop(i)
+        qued_song_picture.pop(i)
         for k in range(i):
             qued_songs.pop(0)
+            qued_song_picture.pop(0)
             qued_song_streams.pop(0)
 
     else:
@@ -100,7 +111,7 @@ def skipFuc():
         print("Noting to chancel")
         
     if not song_thread.is_alive():
-        skipButton.configure(background="Red")
+        skipButton.configure(text_color="red")
         song_thread = threading.Thread(target=songLoop)
         song_thread.start()    
     else:
@@ -113,10 +124,18 @@ def clear_music_directory():
             os.remove(file_path)
     except:
         print("could not clea all")
-
-def set_audio_volume(audio):
+        
+def clear_picture_directory():
     try:
-        print(audio)
+        for file in os.listdir(os.path.join(os.getcwd(), "picture")):
+            file_path = os.path.join(os.getcwd(), "picture", file)
+            os.remove(file_path)
+    except:
+        print("could not clea all")
+
+def set_audio_volume(k):
+    try:
+        audio = sound_level.get()
         pygame.mixer.music.set_volume(int(audio) / 100)
     except Exception as e:
         print(e)
@@ -124,60 +143,98 @@ def set_audio_volume(audio):
 
 def hide_name():
     songName.place_forget()
-    hideName.config(text="Show name", command=show_name)
+    hideName.configure(text="Show name", command=show_name)
     return
 
 def show_name():
-    songName.place(relx=0.5,
-               rely=0.5,
-               anchor="center")
-    hideName.config(text="Hide name", command=hide_name)
+    songName.place(relx=0.25,
+               rely=0.85,
+               anchor="w")
+    hideName.configure(text="Hide name", command=hide_name)
     return
 
-root = tk.Tk()
-root.geometry("500x500")
-root.title("Player")
-root.config(background="#6082B8")
+root = CTk.CTk()
+root.geometry("720x540")
+root.title("Youtube Shuffler")
+root.config(background="#0C0C0C")
+root.resizable(width=False, height=False)
 
 pygame.mixer.init()
 
-play = tk.StringVar()
-playList = tk.Entry(root, textvariable=play)
+play = CTk.StringVar()
+playList = CTk.CTkEntry(root, textvariable=play,
+                        width=350, height=10, bg_color="#0C0C0C",
+                        fg_color="#141414", text_color="#0191DF",
+                        border_color="#0C0C0C")
 playList.place(relx=0.5,
+               rely=0.05,
+               anchor="center")
+
+songName = CTk.CTkLabel(root, text="", font=('Arial', 25), bg_color="#0C0C0C",
+                        fg_color="#0C0C0C", text_color="#0191DF"
+)
+songName.place(relx=0.20,
+               rely=0.88,
+               anchor="w")
+artist_name = CTk.CTkLabel(root, text="", font=('Arial', 20), bg_color="#0C0C0C",
+                        fg_color="#0C0C0C", text_color="#5B5B5B"
+)
+artist_name.place(relx=0.20,
+               rely=0.93,
+               anchor="w")
+changePlay = CTk.CTkButton(root, text="Change Playlist", 
+                           font=('Arial', 20), command=changePlaylist,
+                           text_color="#5B5B5B", fg_color="#0C0C0C", bg_color="#0C0C0C")
+changePlay.place(relx=0.5,
                rely=0.1,
                anchor="center")
-
-songName = tk.Label(root, text="", font=('Arial', 20))
-songName.place(relx=0.5,
-               rely=0.5,
-               anchor="center")
-changePlay = tk.Button(root, text="Change palylist?!?!", font=('Arial', 10), command=changePlaylist)
-changePlay.place(relx=0.5,
-               rely=0.15,
-               anchor="center")
     
-skipButton = tk.Button(root, text="Skip", font=('Arial', 20), command=skipFuc, background="#21D344")
-skipButton.place(relx=0.75,
-               rely=0.75,
+skipButton = CTk.CTkButton(root, text="\U000025fc" + "Skip?", font=('Arial', 20),
+                           width=10, 
+                           command=skipFuc,bg_color="#0C0C0C",
+                            fg_color="#0C0C0C", text_color="#0191DF")
+skipButton.place(relx=0.80,
+               rely=0.05,
                anchor="center")
 
-audioPanel = tk.Scale(root, from_=0, to=100, orient="horizontal", command=set_audio_volume, length=250, tickinterval=10)
+sound_level = CTk.IntVar()
+audioPanel = CTk.CTkSlider(root, from_=0, to=100, 
+                       command=set_audio_volume, height=150, bg_color="#0C0C0C",
+                       button_color="#0191DF", fg_color="#141414", progress_color="#2b2b2b",
+                       orientation="vertical", variable=sound_level)
 audioPanel.set(100)
-audioPanel.place(relx=0.5,
+audioPanel.place(relx=0.95,
                rely=0.9,
+               anchor="s")
+
+hideName = CTk.CTkButton(root, text="Hide name", command=hide_name,font=('Arial', 20),
+                         width=20, text_color="#5B5B5B", bg_color="#0C0C0C",
+                         fg_color="#0C0C0C")
+hideName.place(relx=0.10,
+               rely=0.05,
                anchor="center")
 
-hideName = tk.Button(root, text="Show name", command=show_name)
-hideName.place(relx=0.25,
-               rely=0.75,
-               anchor="center")
+placeImage = "placeholders/placeholderimg.png"
+place_music_image = CTk.CTkImage(dark_image=Image.open(placeImage),
+                          light_image=Image.open(placeImage),
+                          size=(100,100))
 
+imageHolder = CTk.CTkButton(root, image=place_music_image,text="",
+                            bg_color="#0C0C0C", fg_color="#0C0C0C",
+                            text_color="#0C0C0C", hover=False)
+imageHolder.place(relx=0.10,
+               rely=0.88,
+               anchor="center")
 if not os.path.exists(os.getcwd() + r"\music"):
     os.makedirs(os.getcwd() + r"\music")
+    
+if not os.path.exists(os.getcwd() + r"\picture"):
+    os.makedirs(os.getcwd() + r"\picture")
 
 playingMusic = 0
 current_song = None
 qued_songs = []
+qued_song_picture = []
 qued_song_streams = []
 last_song = ""
 
@@ -186,5 +243,5 @@ song_thread = threading.Thread(target=songLoop)
 pygame.mixer.init()
 
 clear_music_directory()
-
+clear_picture_directory()
 root.mainloop()
