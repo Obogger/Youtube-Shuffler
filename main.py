@@ -86,6 +86,8 @@ def play_next_song():
         qued_song_streams.pop(i)
         for k in range(i):
             qued_songs.pop(0)
+            qued_song_streams.pop(0)
+
     else:
         print("Next song is not ready yet, waiting...")
         return
