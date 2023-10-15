@@ -1,3 +1,7 @@
 # Youtube Shuffler
 
-Make sure to put the .exe file inside of a folder as it will create its own music folders and nest itself in the working directory
+# How to use 
+1.Run the .exe file
+2. Paste the link to the Youtube playlist and click "Change Playlist"
+3. Press the skip button once to start listening
+
