@@ -169,6 +169,8 @@ root.resizable(width=True, height=True)
 
 pygame.mixer.init()
 
+FONT = "Segoe UI Light"
+
 play = CTk.StringVar()
 playList = CTk.CTkEntry(root, textvariable=play,
                         width=350, height=10, bg_color="#0C0C0C",
@@ -178,25 +180,25 @@ playList.place(relx=0.5,
                rely=0.05,
                anchor="center")
 
-songName = CTk.CTkLabel(root, text="", font=('Segoe UI Light', 25), bg_color="#0C0C0C",
+songName = CTk.CTkLabel(root, text="", font=(FONT, 25), bg_color="#0C0C0C",
                         fg_color="#0C0C0C", text_color="#0191DF"
 )
 songName.place(relx=0.20,
                rely=0.88,
                anchor="w")
-artist_name = CTk.CTkLabel(root, text="", font=('Segoe UI Light', 20), bg_color="#0C0C0C",
+artist_name = CTk.CTkLabel(root, text="", font=(FONT, 20), bg_color="#0C0C0C",
                         fg_color="#0C0C0C", text_color="#5B5B5B")
 artist_name.place(relx=0.20,
                rely=0.93,
                anchor="w")
 changePlay = CTk.CTkButton(root, text="Change Playlist", 
-                           font=('Segoe UI Light', 20), command=changePlaylist,
+                           font=(FONT, 20), command=changePlaylist,
                            text_color="#5B5B5B", fg_color="#0C0C0C", bg_color="#0C0C0C")
 changePlay.place(relx=0.5,
                rely=0.1,
                anchor="center")
     
-skipButton = CTk.CTkButton(root, text="\U000025fc" + "Skip?", font=('Segoe UI Light', 20),
+skipButton = CTk.CTkButton(root, text="\U000025fc" + "Skip?", font=(FONT, 20),
                            width=10, 
                            command=skipFuc,bg_color="#0C0C0C",
                             fg_color="#0C0C0C", text_color="#0191DF")
@@ -214,7 +216,7 @@ audioPanel.place(relx=0.95,
                rely=0.9,
                anchor="s")
 
-hideName = CTk.CTkButton(root, text="Hide name", command=hide_name,font=('Segoe UI Light', 20),
+hideName = CTk.CTkButton(root, text="Hide name", command=hide_name,font=(FONT, 20),
                          width=20, text_color="#5B5B5B", bg_color="#0C0C0C",
                          fg_color="#0C0C0C")
 hideName.place(relx=0.10,
