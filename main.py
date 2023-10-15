@@ -143,13 +143,21 @@ def set_audio_volume(k):
 
 def hide_name():
     songName.place_forget()
+    artist_name.place_forget()
+    imageHolder.place_forget()
     hideName.configure(text="Show name", command=show_name)
     return
 
 def show_name():
-    songName.place(relx=0.25,
-               rely=0.85,
+    songName.place(relx=0.20,
+               rely=0.88,
                anchor="w")
+    artist_name.place(relx=0.20,
+               rely=0.93,
+               anchor="w")
+    imageHolder.place(relx=0.10,
+               rely=0.88,
+               anchor="center")
     hideName.configure(text="Hide name", command=hide_name)
     return
 
@@ -177,8 +185,7 @@ songName.place(relx=0.20,
                rely=0.88,
                anchor="w")
 artist_name = CTk.CTkLabel(root, text="", font=('Arial', 20), bg_color="#0C0C0C",
-                        fg_color="#0C0C0C", text_color="#5B5B5B"
-)
+                        fg_color="#0C0C0C", text_color="#5B5B5B")
 artist_name.place(relx=0.20,
                rely=0.93,
                anchor="w")
