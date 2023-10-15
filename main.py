@@ -21,7 +21,7 @@ def songLoop():
     play_next_song()
     if(len(qued_songs)  < 3):
         prepare_next_song_thread_second.start()
-        print("Dubble buffering")
+        print("Double buffering")
     while prepare_next_song_thread_first.is_alive() or prepare_next_song_thread_second.is_alive():
         time.sleep(1)
     skipButton.configure(text_color="#0191DF")
@@ -108,14 +108,14 @@ def skipFuc():
     try:
         root.after_cancel(playingMusic)
     except:
-        print("Noting to chancel")
+        print("No auto-player exists to stop")
         
     if not song_thread.is_alive():
         skipButton.configure(text_color="red")
         song_thread = threading.Thread(target=songLoop)
         song_thread.start()    
     else:
-        print("Currently skipping and downloading")
+        print("Can't skip right now, currently downloading new songs")
 
 def clear_music_directory():
     try:
@@ -123,7 +123,7 @@ def clear_music_directory():
             file_path = os.path.join(os.getcwd(), "music", file)
             os.remove(file_path)
     except:
-        print("could not clea all")
+        print("Could not clean entire music directory")
         
 def clear_picture_directory():
     try:
@@ -131,7 +131,7 @@ def clear_picture_directory():
             file_path = os.path.join(os.getcwd(), "picture", file)
             os.remove(file_path)
     except:
-        print("could not clea all")
+        print("Could not clean entire image directory")
 
 def set_audio_volume(k):
     try:
