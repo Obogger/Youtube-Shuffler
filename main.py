@@ -165,7 +165,7 @@ root = CTk.CTk()
 root.geometry("720x540")
 root.title("Youtube Shuffler")
 root.config(background="#0C0C0C")
-root.resizable(width=False, height=False)
+root.resizable(width=True, height=True)
 
 pygame.mixer.init()
 
