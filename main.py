@@ -1,37 +1,45 @@
-import pytube, random, time, os, pygame, moviepy.editor, threading, urllib
+import pytube, random, time, os, vlc, moviepy.editor, threading, urllib
 from PIL import Image
 
 import customtkinter as CTk
 
-
-
+thread_avalibility = [True,True]
 def changePlaylist():
     global p
     p = pytube.Playlist(play.get())
     play.set("")
     
 def songLoop():
-    global qued_songs
-    prepare_next_song_thread_first = threading.Thread(target=prepare_next_song)
-    prepare_next_song_thread_second = threading.Thread(target=prepare_next_song)
+    global ready_for_song, prepare_next_song_thread_first, prepare_next_song_thread_second, thread_avalibility
     if(len(qued_songs) > 0):
-        prepare_next_song_thread_first.start()
+        try:
+            if thread_avalibility[0]:
+                thread_avalibility[0] = False
+                prepare_next_song_thread_first = threading.Thread(target=prepare_next_song, args=(1,))
+                prepare_next_song_thread_first.start()
+        except Exception as e:
+            print(e)
+            
     else:
-        prepare_next_song()
+        prepare_next_song(0)
     play_next_song()
-    if(len(qued_songs)  < 3):
-        prepare_next_song_thread_second.start()
+    print("Odsd")
+    ready_for_song = True
+    if(len(qued_songs)  < 5):
+        try:
+            if thread_avalibility[1]:
+                thread_avalibility[1] = False
+                prepare_next_song_thread_second = threading.Thread(target=prepare_next_song, args=(2,))
+                prepare_next_song_thread_second.start()
+        except Exception as e:
+            print(e)
         print("Double buffering")
-    while prepare_next_song_thread_first.is_alive() or prepare_next_song_thread_second.is_alive():
-        time.sleep(1)
     skipButton.configure(text_color="#0191DF")
-    return
-    
-    
-    return
+    ready_for_song = True
         
-def prepare_next_song():   
-    global qued_songs , qued_song_picture
+def prepare_next_song(thread):   
+    global qued_song_picture, thread_avalibility
+    print(thread)
     for _ in range(5):
         try:
             url = random.choice(p)
@@ -57,38 +65,39 @@ def prepare_next_song():
             qued_songs.append(mp3_file)
             qued_song_streams.append(currentVideo)
             qued_song_picture.append(jpg_file)
+            if thread > 0:
+                thread_avalibility[thread - 1] = True
             return
         except Exception as e:
             print(f"expetion occurd preparing: {e}")
-            
+    if thread > 0:
+        thread_avalibility[thread - 1] = True
     print("Failed to prepapare music after multiple attempts")
     return
 
 def play_next_song():
-    global qued_songs, qued_song_streams, playingMusic, last_song, qued_song_picture, last_image
-    song_thread = threading.Thread(target=songLoop)
+    global qued_song_streams, playingMusic, last_song, qued_song_picture, last_image, current_playing_song
     if len(qued_songs) > 0:
-        pygame.mixer.music.unload()
         imageHolder.configure(image=place_music_image)        
         try:
+            current_playing_song.stop()
             os.remove(last_song)
             os.remove(last_image)
         except:
             print("No lst song")
         for i in range(len(qued_songs)):
             try:
-                pygame.mixer.music.load(qued_songs[i])
+                current_playing_song = vlc.MediaPlayer(qued_songs[i])
                 break
             except Exception as e:
                 print(e)
-        pygame.mixer.music.play(loops=0)
+        current_playing_song.play()
         songName.configure(text=qued_song_streams[i].title)
         artist_name.configure(text=qued_song_streams[i].author)
         music_picture = CTk.CTkImage(dark_image=Image.open(qued_song_picture[i]),
                                      light_image=Image.open(qued_song_picture[i]),
                                      size=(100,100))
         imageHolder.configure(image=music_picture)
-        playingMusic = root.after(int(qued_song_streams[i].length * 1000), song_thread.start)
         last_song = qued_songs[i]
         last_image = qued_song_picture[i]
         qued_songs.pop(i)
@@ -104,13 +113,9 @@ def play_next_song():
         return
 
 def skipFuc():
-    global playingMusic, song_thread
-    try:
-        root.after_cancel(playingMusic)
-    except:
-        print("No auto-player exists to stop")
-        
-    if not song_thread.is_alive():
+    global playingMusic, ready_for_song
+    if ready_for_song:
+        ready_for_song = False
         skipButton.configure(text_color="red")
         song_thread = threading.Thread(target=songLoop)
         song_thread.start()    
@@ -136,7 +141,7 @@ def clear_picture_directory():
 def set_audio_volume(k):
     try:
         audio = sound_level.get()
-        pygame.mixer.music.set_volume(int(audio) / 100)
+        current_playing_song.audio_set_volume(audio)
     except Exception as e:
         print(e)
     return
@@ -161,13 +166,31 @@ def show_name():
     hideName.configure(text="Hide name", command=hide_name)
     return
 
+def pause_music():
+    current_playing_song.pause()
+    stop_button.configure(text="Start music", command=start_music)
+
+def start_music():
+    global playingMusic
+    current_playing_song.play()
+    stop_button.configure(text="Stop music", command=pause_music)
+
+def check_music_and_play():
+    while True:
+        try:
+            print(current_playing_song.get_length() - current_playing_song.get_time())
+            if current_playing_song.get_length() - current_playing_song.get_time() <= 1000:
+                song_thread = threading.Thread(target=songLoop)
+                song_thread.start()    
+        except Exception as e:
+            print(e)
+        time.sleep(1)
+        
 root = CTk.CTk()
 root.geometry("720x540")
 root.title("Youtube Shuffler")
 root.config(background="#0C0C0C")
 root.resizable(width=True, height=True)
-
-pygame.mixer.init()
 
 FONT = "Segoe UI Light"
 
@@ -206,12 +229,19 @@ skipButton.place(relx=0.80,
                rely=0.05,
                anchor="center")
 
+stop_button = CTk.CTkButton(root, text="Stop song",font=(FONT, 20),
+                            width=10, 
+                           command=pause_music,bg_color="#0C0C0C",
+                            fg_color="#0C0C0C", text_color="#0191DF")
+stop_button.place(relx=0.5,
+               rely=0.5,
+               anchor="center")
 sound_level = CTk.IntVar()
 audioPanel = CTk.CTkSlider(root, from_=0, to=100, 
                        command=set_audio_volume, height=150, bg_color="#0C0C0C",
                        button_color="#0191DF", fg_color="#141414", progress_color="#2b2b2b",
                        orientation="vertical", variable=sound_level)
-audioPanel.set(100)
+audioPanel.set(50)
 audioPanel.place(relx=0.95,
                rely=0.9,
                anchor="s")
@@ -246,10 +276,11 @@ qued_songs = []
 qued_song_picture = []
 qued_song_streams = []
 last_song = ""
+ready_for_song = True
 
 song_thread = threading.Thread(target=songLoop)
-
-pygame.mixer.init()
+check_song_ended = threading.Thread(target=check_music_and_play)
+check_song_ended.start()
 
 clear_music_directory()
 clear_picture_directory()
