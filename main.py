@@ -45,7 +45,7 @@ def songLoop():
         except Exception as e:
             print(e)
         print("Double buffering")
-    skipButton.configure(text_color="#0191DF")
+    skipButton.configure(image=skip_post)
     ready_for_song = True
         
 def prepare_next_song(thread):   
@@ -131,7 +131,7 @@ def skipFuc():
     global playingMusic, ready_for_song
     if ready_for_song:
         ready_for_song = False
-        skipButton.configure(text_color="red")
+        skipButton.configure(image=skip_unavlabile_post)
         song_thread = threading.Thread(target=songLoop)
         song_thread.start()    
     else:
@@ -165,6 +165,8 @@ def hide_name():
     songName.place_forget()
     artist_name.place_forget()
     imageHolder.place_forget()
+    for label in qued_song_labels:
+        label.place_forget()
     hideName.configure(text="Show", command=show_name)
     return
 
@@ -178,24 +180,33 @@ def show_name():
     imageHolder.place(relx=0.08,
                rely=0.8,
                anchor="center")
+    i = 0
+    for label in qued_song_labels:
+        label.place(relx=0.03,rely=0.57 + 0.05 * i, anchor="w")
+        i+= 1
+        if i == 3:
+            break
     hideName.configure(text="Hide", command=hide_name)
     return
 
 def pause_music():
     current_playing_song.pause()
-    stop_button.configure(text="\U000025B6", command=start_music)
+    stop_button.configure(image=start_image_post, command=start_music,)
     
 
 def start_music():
     global playingMusic
     current_playing_song.play()
-    stop_button.configure(text="\U000023F8", command=pause_music)
+    stop_button.configure(image=stop_image_post, command=pause_music)
 
 def time_in_ms_to_minute_format(time_in_ms):
     time_in_seconds = int(time_in_ms / 1000)
     rest_time_in_minute = int(time_in_seconds / 60)
     time_in_seconds = time_in_seconds % 60
-    text = (str(rest_time_in_minute)+":"+str(time_in_seconds))
+    if (time_in_seconds < 10):
+        text = (str(rest_time_in_minute)+":" + "0" + str(time_in_seconds))
+    else:
+        text = (str(rest_time_in_minute)+":"+str(time_in_seconds))
     return text
 def update_progress():
     while True:
@@ -256,7 +267,7 @@ audioPanel = CTk.CTkSlider(root, from_=0, to=100,
                        command=set_audio_volume, width=350, height=20, bg_color="#0C0C0C",
                        button_color="#0191DF", fg_color="#141414", progress_color="#0191DF",
                        orientation="horizontal", variable=sound_level)
-audioPanel.set(50)
+audioPanel.set(75)
 audioPanel.place(relx=0.87,
                rely=0.03,
                anchor="center")
@@ -272,7 +283,7 @@ playlist_name_label = CTk.CTkLabel(root, text="",font=(FONT, 30),
                          width=20, text_color="#5B5B5B", bg_color="#0C0C0C",
                          fg_color="#0C0C0C")
 playlist_name_label.place(relx=0.5,
-               rely=0.06,
+               rely=0.08,
                anchor="center")
 
 placeImage = "placeholders/placeholderimg.png"
@@ -303,15 +314,28 @@ current_time_label = CTk.CTkLabel(bottom_bar, bg_color="#0A0A0A", text="5000", f
                             fg_color="#0A0A0A", text_color="#5B5B5B")
 current_time_label.place(relx=0.15,rely=0.5,anchor="center")
 
-stop_button = CTk.CTkButton(bottom_bar, text="\U000023F8",font=(FONT, 50),
+stop_image_raw = "placeholders/Obog.png"
+stop_image_post = CTk.CTkImage(dark_image=Image.open(stop_image_raw),
+                          light_image=Image.open(stop_image_raw),
+                          size=(35,45))
+
+stop_button = CTk.CTkButton(bottom_bar, image=stop_image_post, text="",font=(FONT, 50),
                             width=10, height=10, border_width=0,
                            command=pause_music,bg_color="#0A0A0A",
                             fg_color="#0A0A0A", text_color="#0191DF", border_color="#0A0A0A")
 stop_button.place(relx=0.1,
                rely=0.5,
                anchor="center")
-
-skipButton = CTk.CTkButton(bottom_bar, text="Spgo\U000023ED", font=(FONT, 50),
+image1 = "placeholders/ObrogG.png"
+skip_unavlabile_post = CTk.CTkImage(dark_image=Image.open(image1),
+                          light_image=Image.open(image1),
+                          size=(45,45))
+image1 = "placeholders/Obrog.png"
+skip_post = CTk.CTkImage(dark_image=Image.open(image1),
+                          light_image=Image.open(image1),
+                          size=(45,45))
+start_image_post = skip_post
+skipButton = CTk.CTkButton(bottom_bar, image=skip_post, text="", font=(FONT, 50),
                            width=10, 
                            command=skipFuc,bg_color="#0A0A0A",
                             fg_color="#0A0A0A", text_color="#0191DF")
