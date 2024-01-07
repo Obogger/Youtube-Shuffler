@@ -1,13 +1,24 @@
 import pytube, random, time, os, vlc, moviepy.editor, threading, urllib
-from PIL import Image
-
+from PIL import Image, ImageTk
 import customtkinter as CTk
+import tkinter
 
 thread_avalibility = [True,True]
 def changePlaylist():
     global p
     p = pytube.Playlist(play.get())
+    playlist_name_label.configure(text=str(p.title))
+    skipFuc()
     play.set("")
+    
+def update_queued_songs():
+    try:
+        for index in range(len(qued_song_labels)):
+            qued_song_labels[index].configure(text=qued_song_streams[index].title)
+    except Exception as e:
+        qued_song_labels[index].configure(text="")
+        print(e)
+    return
     
 def songLoop():
     global ready_for_song, prepare_next_song_thread_first, prepare_next_song_thread_second, thread_avalibility
@@ -34,7 +45,7 @@ def songLoop():
         except Exception as e:
             print(e)
         print("Double buffering")
-    skipButton.configure(text_color="#0191DF")
+    skipButton.configure(image=skip_post)
     ready_for_song = True
         
 def prepare_next_song(thread):   
@@ -48,6 +59,7 @@ def prepare_next_song(thread):
             audio_stream = currentVideo.streams.get_audio_only()
             print(audio_stream)
             print(picture_url)
+            print(os.path.join(os.getcwd(), "music"))
             downloadFile = audio_stream.download(output_path=os.path.join(os.getcwd(), "music"))
             base, ext = os.path.splitext(downloadFile)
             base_name = os.path.basename(downloadFile)
@@ -55,6 +67,7 @@ def prepare_next_song(thread):
             urllib.request.urlretrieve(picture_url, "picture/" + base_name + ".jpg")
             jpg_file = os.path.join(os.getcwd(), "picture", base_name + ".jpg")
             print(jpg_file)
+            print("hello")
             mp3_file = base + ".mp3"
 
             video_file = moviepy.editor.AudioFileClip(downloadFile)
@@ -67,6 +80,7 @@ def prepare_next_song(thread):
             qued_song_picture.append(jpg_file)
             if thread > 0:
                 thread_avalibility[thread - 1] = True
+            update_queued_songs()
             return
         except Exception as e:
             print(f"expetion occurd preparing: {e}")
@@ -96,7 +110,7 @@ def play_next_song():
         artist_name.configure(text=qued_song_streams[i].author)
         music_picture = CTk.CTkImage(dark_image=Image.open(qued_song_picture[i]),
                                      light_image=Image.open(qued_song_picture[i]),
-                                     size=(100,100))
+                                     size=(200,200))
         imageHolder.configure(image=music_picture)
         last_song = qued_songs[i]
         last_image = qued_song_picture[i]
@@ -107,6 +121,7 @@ def play_next_song():
             qued_songs.pop(0)
             qued_song_picture.pop(0)
             qued_song_streams.pop(0)
+        update_queued_songs()
 
     else:
         print("Next song is not ready yet, waiting...")
@@ -116,7 +131,7 @@ def skipFuc():
     global playingMusic, ready_for_song
     if ready_for_song:
         ready_for_song = False
-        skipButton.configure(text_color="red")
+        skipButton.configure(image=skip_unavlabile_post)
         song_thread = threading.Thread(target=songLoop)
         song_thread.start()    
     else:
@@ -150,35 +165,62 @@ def hide_name():
     songName.place_forget()
     artist_name.place_forget()
     imageHolder.place_forget()
-    hideName.configure(text="Show name", command=show_name)
+    for label in qued_song_labels:
+        label.place_forget()
+    hideName.configure(text="Show", command=show_name)
     return
 
 def show_name():
-    songName.place(relx=0.20,
+    songName.place(relx=0.15,
+               rely=0.83,
+               anchor="w")
+    artist_name.place(relx=0.15,
                rely=0.88,
                anchor="w")
-    artist_name.place(relx=0.20,
-               rely=0.93,
-               anchor="w")
-    imageHolder.place(relx=0.10,
-               rely=0.88,
+    imageHolder.place(relx=0.08,
+               rely=0.8,
                anchor="center")
-    hideName.configure(text="Hide name", command=hide_name)
+    i = 0
+    for label in qued_song_labels:
+        label.place(relx=0.03,rely=0.57 + 0.05 * i, anchor="w")
+        i+= 1
+        if i == 3:
+            break
+    hideName.configure(text="Hide", command=hide_name)
     return
 
 def pause_music():
     current_playing_song.pause()
-    stop_button.configure(text="Start music", command=start_music)
+    stop_button.configure(image=start_image_post, command=start_music,)
+    
 
 def start_music():
     global playingMusic
     current_playing_song.play()
-    stop_button.configure(text="Stop music", command=pause_music)
+    stop_button.configure(image=stop_image_post, command=pause_music)
 
+def time_in_ms_to_minute_format(time_in_ms):
+    time_in_seconds = int(time_in_ms / 1000)
+    rest_time_in_minute = int(time_in_seconds / 60)
+    time_in_seconds = time_in_seconds % 60
+    if (time_in_seconds < 10):
+        text = (str(rest_time_in_minute)+":" + "0" + str(time_in_seconds))
+    else:
+        text = (str(rest_time_in_minute)+":"+str(time_in_seconds))
+    return text
+def update_progress():
+    while True:
+        time.sleep(0.1)
+        try: 
+            time_in_percentage = current_playing_song.get_time() / current_playing_song.get_length()
+            progressbar.set(time_in_percentage)
+            total_time_label.configure(text=time_in_ms_to_minute_format(current_playing_song.get_length()))
+            current_time_label.configure(text=time_in_ms_to_minute_format(current_playing_song.get_time()))
+        except:
+            pass
 def check_music_and_play():
     while True:
         try:
-            print(current_playing_song.get_length() - current_playing_song.get_time())
             if current_playing_song.get_length() - current_playing_song.get_time() <= 1000:
                 song_thread = threading.Thread(target=songLoop)
                 song_thread.start()    
@@ -187,7 +229,7 @@ def check_music_and_play():
         time.sleep(1)
         
 root = CTk.CTk()
-root.geometry("720x540")
+root.geometry("1920x1080")
 root.title("Youtube Shuffler")
 root.config(background="#0C0C0C")
 root.resizable(width=True, height=True)
@@ -196,79 +238,123 @@ FONT = "Segoe UI Light"
 
 play = CTk.StringVar()
 playList = CTk.CTkEntry(root, textvariable=play,
-                        width=350, height=10, bg_color="#0C0C0C",
+                        width=600, height=25, bg_color="#0C0C0C",
                         fg_color="#141414", text_color="#0191DF",
                         border_color="#0C0C0C")
 playList.place(relx=0.5,
-               rely=0.05,
+               rely=0.03,
                anchor="center")
 
-songName = CTk.CTkLabel(root, text="", font=(FONT, 25), bg_color="#0C0C0C",
+songName = CTk.CTkLabel(root, text="", font=(FONT, 50), bg_color="#0C0C0C",
                         fg_color="#0C0C0C", text_color="#0191DF"
 )
-songName.place(relx=0.20,
+songName.place(relx=0.15,
+               rely=0.83,
+               anchor="w")
+artist_name = CTk.CTkLabel(root, text="", font=(FONT, 30), bg_color="#0C0C0C",
+                        fg_color="#0C0C0C", text_color="#5B5B5B")
+artist_name.place(relx=0.15,
                rely=0.88,
                anchor="w")
-artist_name = CTk.CTkLabel(root, text="", font=(FONT, 20), bg_color="#0C0C0C",
-                        fg_color="#0C0C0C", text_color="#5B5B5B")
-artist_name.place(relx=0.20,
-               rely=0.93,
-               anchor="w")
-changePlay = CTk.CTkButton(root, text="Change Playlist", 
-                           font=(FONT, 20), command=changePlaylist,
+changePlay = CTk.CTkButton(root, text="Change", 
+                           font=(FONT, 30), command=changePlaylist,
                            text_color="#5B5B5B", fg_color="#0C0C0C", bg_color="#0C0C0C")
-changePlay.place(relx=0.5,
-               rely=0.1,
-               anchor="center")
-    
-skipButton = CTk.CTkButton(root, text="\U000025fc" + "Skip?", font=(FONT, 20),
-                           width=10, 
-                           command=skipFuc,bg_color="#0C0C0C",
-                            fg_color="#0C0C0C", text_color="#0191DF")
-skipButton.place(relx=0.80,
-               rely=0.05,
-               anchor="center")
-
-stop_button = CTk.CTkButton(root, text="Stop song",font=(FONT, 20),
-                            width=10, 
-                           command=pause_music,bg_color="#0C0C0C",
-                            fg_color="#0C0C0C", text_color="#0191DF")
-stop_button.place(relx=0.5,
-               rely=0.5,
+changePlay.place(relx=0.7,
+               rely=0.03,
                anchor="center")
 sound_level = CTk.IntVar()
 audioPanel = CTk.CTkSlider(root, from_=0, to=100, 
-                       command=set_audio_volume, height=150, bg_color="#0C0C0C",
-                       button_color="#0191DF", fg_color="#141414", progress_color="#2b2b2b",
-                       orientation="vertical", variable=sound_level)
-audioPanel.set(50)
-audioPanel.place(relx=0.95,
-               rely=0.9,
-               anchor="s")
+                       command=set_audio_volume, width=350, height=20, bg_color="#0C0C0C",
+                       button_color="#0191DF", fg_color="#141414", progress_color="#0191DF",
+                       orientation="horizontal", variable=sound_level)
+audioPanel.set(75)
+audioPanel.place(relx=0.87,
+               rely=0.03,
+               anchor="center")
 
-hideName = CTk.CTkButton(root, text="Hide name", command=hide_name,font=(FONT, 20),
+hideName = CTk.CTkButton(root, text="Hide", command=hide_name,font=(FONT, 30),
                          width=20, text_color="#5B5B5B", bg_color="#0C0C0C",
                          fg_color="#0C0C0C")
-hideName.place(relx=0.10,
-               rely=0.05,
+hideName.place(relx=0.31,
+               rely=0.03,
+               anchor="center")
+
+playlist_name_label = CTk.CTkLabel(root, text="",font=(FONT, 30),
+                         width=20, text_color="#5B5B5B", bg_color="#0C0C0C",
+                         fg_color="#0C0C0C")
+playlist_name_label.place(relx=0.5,
+               rely=0.08,
                anchor="center")
 
 placeImage = "placeholders/placeholderimg.png"
 place_music_image = CTk.CTkImage(dark_image=Image.open(placeImage),
                           light_image=Image.open(placeImage),
-                          size=(100,100))
+                          size=(200,200))
 
 imageHolder = CTk.CTkButton(root, image=place_music_image,text="",
                             bg_color="#0C0C0C", fg_color="#0C0C0C",
-                            text_color="#0C0C0C", hover=False)
-imageHolder.place(relx=0.10,
-               rely=0.88,
+                            text_color="#0C0C0C", hover=False, width=200, height=200)
+imageHolder.place(relx=0.08,
+               rely=0.8,
+               anchor="center")
+
+bottom_bar = CTk.CTkFrame(root, fg_color="#0A0A0A", width=1930, height=80)
+bottom_bar.place(relx=0.5, rely=0.96, anchor="center")
+
+progressbar = CTk.CTkProgressBar(bottom_bar, width=1250, orientation="horizontal",bg_color="#0C0C0C",
+                                 fg_color="#141414", progress_color="#0191DF")
+progressbar.set(0)
+progressbar.place(relx=0.5, rely=0.5, anchor="center")
+
+total_time_label = CTk.CTkLabel(bottom_bar, bg_color="#0A0A0A", text="5000", font=(FONT, 25),
+                            fg_color="#0A0A0A", text_color="#5B5B5B")
+total_time_label.place(relx=0.85,rely=0.5,anchor="center")
+
+current_time_label = CTk.CTkLabel(bottom_bar, bg_color="#0A0A0A", text="5000", font=(FONT, 25),
+                            fg_color="#0A0A0A", text_color="#5B5B5B")
+current_time_label.place(relx=0.15,rely=0.5,anchor="center")
+
+stop_image_raw = "placeholders/Obog.png"
+stop_image_post = CTk.CTkImage(dark_image=Image.open(stop_image_raw),
+                          light_image=Image.open(stop_image_raw),
+                          size=(35,45))
+
+stop_button = CTk.CTkButton(bottom_bar, image=stop_image_post, text="",font=(FONT, 50),
+                            width=10, height=10, border_width=0,
+                           command=pause_music,bg_color="#0A0A0A",
+                            fg_color="#0A0A0A", text_color="#0191DF", border_color="#0A0A0A")
+stop_button.place(relx=0.1,
+               rely=0.5,
+               anchor="center")
+image1 = "placeholders/ObrogG.png"
+skip_unavlabile_post = CTk.CTkImage(dark_image=Image.open(image1),
+                          light_image=Image.open(image1),
+                          size=(45,45))
+image1 = "placeholders/Obrog.png"
+skip_post = CTk.CTkImage(dark_image=Image.open(image1),
+                          light_image=Image.open(image1),
+                          size=(45,45))
+start_image_post = skip_post
+skipButton = CTk.CTkButton(bottom_bar, image=skip_post, text="", font=(FONT, 50),
+                           width=10, 
+                           command=skipFuc,bg_color="#0A0A0A",
+                            fg_color="#0A0A0A", text_color="#0191DF")
+skipButton.place(relx=0.9,
+               rely=0.5,
                anchor="center")
 if not os.path.exists(os.getcwd() + r"\music"):
     os.makedirs(os.getcwd() + r"\music")
     
 if not os.path.exists(os.getcwd() + r"\picture"):
     os.makedirs(os.getcwd() + r"\picture")
+    
+qued_song_labels = []
+qued_song_label_colors = ["#4F4F4F", "#353535" , "#1C1C1C"]
+for i in range(3):
+    qued_song_label = CTk.CTkLabel(root, text= "",font=(FONT, 30), bg_color="#0C0C0C",
+                        fg_color="#0C0C0C", text_color=qued_song_label_colors[i])
+    qued_song_labels.append(qued_song_label)
+    qued_song_labels[-1].place(relx=0.03,rely=0.57 + 0.05 * i, anchor="w")
     
 playingMusic = 0
 current_song = None
@@ -280,6 +366,8 @@ ready_for_song = True
 
 song_thread = threading.Thread(target=songLoop)
 check_song_ended = threading.Thread(target=check_music_and_play)
+progressbar_thread = threading.Thread(target=update_progress)
+progressbar_thread.start()
 check_song_ended.start()
 
 clear_music_directory()
